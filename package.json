@@ -15,7 +15,7 @@
     "name": "Max Zakharzhevskiy",
     "email": "maxzz@msn.com"
   },
-  "license": "MIT",
+  "license": "GPL-2.0-only",
   "scripts": {
     "dev": "wails dev",
     "build": "wails build --clean --platform windows/amd64",
