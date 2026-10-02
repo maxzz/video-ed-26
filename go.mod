@@ -1,4 +1,4 @@
-module tm-template-go-26
+module video-ed-26
 
 go 1.22.0
 

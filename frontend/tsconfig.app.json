@@ -25,7 +25,7 @@
     "noUnusedLocals": false,
     "noUnusedParameters": false,
 
-    "erasableSyntaxOnly": true,
+    "erasableSyntaxOnly": false, // wailsjs/go/models.ts is generated with namespaces
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
   },

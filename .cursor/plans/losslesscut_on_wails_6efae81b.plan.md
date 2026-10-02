@@ -4,22 +4,22 @@ overview: Replace the template's main area with a LosslessCut-style lossless vid
 todos:
   - id: p1-foundation
     content: "Phase 1: rename app, remove demos/login, Go service skeleton, ffbin locator + ffmpeg download script, media AssetServer handler, backend-api layer, empty editor layout"
-    status: pending
+    status: completed
   - id: p2-open-play
     content: "Phase 2: open file (dialog + drop), ffprobe info, player feature with Jotai bindings, html5ify preview fallback"
-    status: pending
+    status: completed
   - id: p3-timeline-segments
     content: "Phase 3: timeline (zoom/scroll/playhead), segments feature with undo/redo, segments panel, command registry + keyboard shortcuts"
-    status: pending
+    status: completed
   - id: p4-export
     content: "Phase 4: export service + dialog (separate/merge, keyframe/accurate cut, name template, progress/cancel), project autosave"
-    status: pending
+    status: completed
   - id: p5-tracks-precision
     content: "Phase 5: tracks panel, keyframes markers + snapping, timeline thumbnails and waveform"
-    status: pending
+    status: completed
   - id: p6-extras
     content: "Phase 6: snapshot, detection tools, segment import/export formats, extract tracks, merge files, batch list, smart cut"
-    status: pending
+    status: completed
 isProject: false
 ---
 

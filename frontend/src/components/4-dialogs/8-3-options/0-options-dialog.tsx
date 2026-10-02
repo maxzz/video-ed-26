@@ -5,14 +5,16 @@ import { appSettings, WelcomeTransition } from "@/store/1-ui-settings";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/ui/shadcn/dialog";
 import { Label } from "@/ui/shadcn/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/ui/shadcn/select";
+import { FfmpegOptions } from "@/features/9-ffmpeg-status";
 import { isOpenOptionsDialogAtom } from "./9-types-options";
+import { EditorOptions } from "./1-editor-options";
 
 export function OptionsDialog() {
     const [isOpen, setIsOpen] = useAtom(isOpenOptionsDialogAtom);
 
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
-            <DialogContent className="max-w-sm! gap-0! p-0!" modal>
+            <DialogContent className="max-w-md! gap-0! p-0!" modal>
                 <DialogHeader className="px-4 py-3 text-left border-b gap-0">
                     <DialogTitle className="text-sm">
                         Options
@@ -24,6 +26,8 @@ export function OptionsDialog() {
 
                 <div className="px-4 py-4 flex flex-col gap-4">
                     <WelcomeTransitionSelect />
+                    <EditorOptions />
+                    <FfmpegOptions />
                 </div>
             </DialogContent>
         </Dialog>
