@@ -6,7 +6,6 @@ package ffbin
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -151,13 +150,13 @@ func version(ffmpeg string) string {
 	defer cancel()
 	out, err := ffrun.Output(ctx, ffmpeg, "-hide_banner", "-version")
 	if err != nil {
-		var ee *exec.ExitError
-		if !errors.As(err, &ee) {
-			return ""
-		}
+		return ""
 	}
 	line, _, _ := strings.Cut(string(out), "\n")
-	line = strings.TrimPrefix(strings.TrimSpace(line), "ffmpeg version ")
+	line, ok := strings.CutPrefix(strings.TrimSpace(line), "ffmpeg version ")
+	if !ok {
+		return ""
+	}
 	ver, _, _ := strings.Cut(line, " ")
 	return ver
 }
