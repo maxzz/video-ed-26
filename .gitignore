@@ -1,12 +1,13 @@
 # Wails / Go binaries and build outputs
 /build/bin/
+/build/ffmpeg-cache/
 /build/darwin/*.app
-/tm-template-go-26
-/tm-template-go-26.exe
-/tm-template-go-26-*.exe
-/tm-template-go-26-darwin-*
-/tm-template-go-26-linux-*
-/tm-template-go-26-windows-*
+/video-ed-26
+/video-ed-26.exe
+/video-ed-26-*.exe
+/video-ed-26-darwin-*
+/video-ed-26-linux-*
+/video-ed-26-windows-*
 
 # Go build & test artifacts
 *.test

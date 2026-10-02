@@ -2,22 +2,25 @@ package backend
 
 import (
 	"context"
-	"fmt"
+
+	"video-ed-26/backend/appctx"
 )
 
 // App struct
 type App struct {
-	ctx context.Context
+	ctx  context.Context
+	hold *appctx.Holder
 }
 
 // NewApp creates a new App application struct
-func NewApp() *App {
-	return &App{}
+func NewApp(hold *appctx.Holder) *App {
+	return &App{hold: hold}
 }
 
 // Startup is called at application startup
 func (a *App) Startup(ctx context.Context) {
 	a.ctx = ctx
+	a.hold.Set(ctx)
 }
 
 // DomReady is called after front-end resources have been loaded
@@ -56,12 +59,4 @@ func (a *App) saveDevToolsState(open bool) {
 	}
 	opts.DevTools = open
 	saveIniFileOptions(opts)
-}
-
-// shutdown is called at application termination
-func (a *App) shutdown(ctx context.Context) {}
-
-// Greet returns a greeting for the given name
-func (a *App) Greet(name string) string {
-	return fmt.Sprintf("Hello %s, It's show time!", name)
 }

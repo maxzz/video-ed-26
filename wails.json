@@ -1,6 +1,6 @@
 {
-  "name": "tm-template-go-26",
-  "outputfilename": "tm-template-go-26",
+  "name": "video-ed-26",
+  "outputfilename": "video-ed-26",
   "frontend:install": "pnpm install",
   "frontend:build": "pnpm run build",
   "frontend:dev:watcher": "pnpm run dev",

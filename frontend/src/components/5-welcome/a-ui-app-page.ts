@@ -63,8 +63,8 @@ export const welcomeSplitAtom = atom(false);
 
 //---------------------------------------------------------------------------
 
-export const APP_NAME = "Template App";
+export const APP_NAME = "Video Ed";
 
-export const APP_DESCRIPTION = "A starting point for Wails desktop apps: Go backend, React frontend, Tailwind CSS and shadcn/ui. Replace this text, the name, and the logo with your own.";
+export const APP_DESCRIPTION = "Lossless video and audio cutting: trim, split, merge and extract tracks without re-encoding. Powered by ffmpeg, in the spirit of LosslessCut.";
 
 //---------------------------------------------------------------------------
