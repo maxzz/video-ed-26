@@ -1,9 +1,10 @@
 import { atom } from "jotai";
 import { hasVideoAtom } from "@/features/1-media-file/0-store";
 import {
-    currentTimeAtom, mediaElementDurationAtom, mutedAtom, playbackErrorAtom, PlaybackError,
+    commandedTimeAtom, currentTimeAtom, mediaElementDurationAtom, mutedAtom, playbackErrorAtom, PlaybackError,
     playbackRateAtom, playingAtom, videoElementAtom, videoSizeAtom, volumeAtom,
 } from "./1-player-atoms";
+import { isSeekInFlight, onSmoothSeeked, resetSmoothSeek, smoothSeek } from "./5-smooth-seek";
 
 /**
  * Use as the ref callback of the <video> element: `ref={useSetAtom(bindVideoElementAtom)}`.
@@ -23,10 +24,20 @@ export const bindVideoElementAtom = atom(null, (get, set, el: HTMLVideoElement |
     const signal = controller.signal;
     let frame = 0;
 
-    const syncTime = () => set(currentTimeAtom, el.currentTime);
+    // While a scrub is decoding, `currentTime` already reads as the seek target, not the shown frame.
+    // Only `seeked` publishes that displayed frame. While paused, the playhead stays where the user
+    // put it; playback is what moves the playhead along with the video.
+    const followPlayback = () => {
+        if (isSeekInFlight()) {
+            return;
+        }
+        const t = el.currentTime;
+        set(currentTimeAtom, t);
+        set(commandedTimeAtom, t);
+    };
 
     const loop = () => {
-        syncTime();
+        followPlayback();
         frame = el.paused ? 0 : requestAnimationFrame(loop);
     };
 
@@ -38,12 +49,21 @@ export const bindVideoElementAtom = atom(null, (get, set, el: HTMLVideoElement |
 
     el.addEventListener("pause", () => {
         set(playingAtom, false);
-        syncTime();
+        followPlayback();
     }, { signal });
 
     el.addEventListener("ended", () => set(playingAtom, false), { signal });
-    el.addEventListener("seeked", syncTime, { signal });
-    el.addEventListener("timeupdate", () => el.paused && syncTime(), { signal });
+    el.addEventListener("seeked", () => {
+        const displayed = onSmoothSeeked(el);
+        if (displayed != null) {
+            set(currentTimeAtom, displayed);
+        }
+    }, { signal });
+    el.addEventListener("timeupdate", () => {
+        if (el.paused && !isSeekInFlight()) {
+            set(currentTimeAtom, el.currentTime);
+        }
+    }, { signal });
     el.addEventListener("ratechange", () => set(playbackRateAtom, el.playbackRate), { signal });
     el.addEventListener("volumechange", () => {
         set(volumeAtom, el.volume);
@@ -57,7 +77,10 @@ export const bindVideoElementAtom = atom(null, (get, set, el: HTMLVideoElement |
         const videoDoesNotDecode = get(hasVideoAtom) && el.videoWidth === 0;
         set(playbackErrorAtom, videoDoesNotDecode ? PlaybackError.unsupportedVideo : PlaybackError.none);
 
-        el.currentTime = get(currentTimeAtom); // keeps the position when switching to a preview proxy
+        const commanded = get(commandedTimeAtom);
+        if (Math.abs(el.currentTime - commanded) > 0.001) {
+            smoothSeek(el, commanded); // keeps the position when switching to a preview proxy
+        }
     }, { signal });
 
     el.addEventListener("error", () => {
@@ -69,6 +92,7 @@ export const bindVideoElementAtom = atom(null, (get, set, el: HTMLVideoElement |
     return () => {
         controller.abort();
         cancelAnimationFrame(frame);
+        resetSmoothSeek();
         set(videoElementAtom, null);
         set(playingAtom, false);
     };

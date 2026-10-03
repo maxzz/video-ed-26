@@ -3,8 +3,14 @@ import { currentFileAtom, fileDurationAtom, mainVideoStreamAtom } from "@/featur
 
 export const videoElementAtom = atom<HTMLVideoElement | null>(null);
 
-/** Playhead position in seconds; updated every animation frame while playing. */
+/** Last frame the video element has displayed, in seconds. Lags the playhead while a scrub is decoding. */
 export const currentTimeAtom = atom(0);
+
+/**
+ * Where the user put the playhead, in seconds. Updated immediately while scrubbing.
+ * While playing, and whenever no seek is in flight, this tracks `currentTimeAtom`.
+ */
+export const commandedTimeAtom = atom(0);
 
 export const playingAtom = atom(false);
 
