@@ -1,11 +1,11 @@
 import { useAtomValue, useSetAtom } from "jotai";
 import { formatTime } from "@/utils/time-format";
 import { TimeInput } from "@/ui/local-ui/9-time-input";
-import { currentTimeAtom, durationAtom, seekAtom } from "../0-store";
+import { commandedTimeAtom, durationAtom, seekAtom } from "../0-store";
 
 /** Current time / duration; the current time is editable to jump to a position. */
 export function TimeDisplay() {
-    const time = useAtomValue(currentTimeAtom);
+    const time = useAtomValue(commandedTimeAtom);
     const duration = useAtomValue(durationAtom);
     const seek = useSetAtom(seekAtom);
 

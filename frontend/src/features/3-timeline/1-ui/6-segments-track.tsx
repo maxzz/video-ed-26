@@ -85,7 +85,23 @@ function EdgeHandle({ id, edge }: { id: string; edge: "start" | "end"; }) {
             ? Math.min(t, segment.end - MIN_LENGTH)
             : Math.max(t, segment.start + MIN_LENGTH);
         update(id, { [edge]: value }, false);
-        seek(value);
+        seek(value, false);
+    }
+
+    function onUp(e: ReactPointerEvent<HTMLDivElement>) {
+        if (!e.currentTarget.hasPointerCapture(e.pointerId)) {
+            return;
+        }
+        onMove(e);
+        const content = e.currentTarget.closest("[data-timeline-content]");
+        if (!segment || !content) {
+            return;
+        }
+        const t = snap(timeFromPointer(e, content, duration));
+        const value = edge === "start"
+            ? Math.min(t, segment.end - MIN_LENGTH)
+            : Math.max(t, segment.start + MIN_LENGTH);
+        seek(value, true);
     }
 
     return (
@@ -98,6 +114,8 @@ function EdgeHandle({ id, edge }: { id: string; edge: "start" | "end"; }) {
                 pushHistory();
             }}
             onPointerMove={onMove}
+            onPointerUp={onUp}
+            onPointerCancel={onUp}
         />
     );
 }

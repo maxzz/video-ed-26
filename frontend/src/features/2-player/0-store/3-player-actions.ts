@@ -1,9 +1,11 @@
 import { atom } from "jotai";
 import { fpsAtom } from "@/features/1-media-file/0-store";
 import {
-    currentTimeAtom, durationAtom, mediaElementDurationAtom, mutedAtom, playbackErrorAtom, PlaybackError,
+    commandedTimeAtom, currentTimeAtom, durationAtom, mediaElementDurationAtom, mutedAtom, playbackErrorAtom, PlaybackError,
     playbackRateAtom, playingAtom, previewAtom, rotationOverrideAtom, effectiveRotationAtom, videoElementAtom, videoSizeAtom,
 } from "./1-player-atoms";
+import { resetSmoothSeek, smoothSeek } from "./5-smooth-seek";
+import { nearestScrubKeyframe } from "./6-scrub-keyframes";
 
 export const togglePlayAtom = atom(null, (get) => {
     const el = get(videoElementAtom);
@@ -21,18 +23,29 @@ export const pauseAtom = atom(null, (get) => {
     get(videoElementAtom)?.pause();
 });
 
-export const seekAtom = atom(null, (get, set, time: number) => {
+/**
+ * `exact` decodes the requested frame (keyboard, release). A drag passes false: the playhead
+ * stays on `time`, and the video seeks to the nearest keyframe so the preview does not wait
+ * out the GOP.
+ */
+export const seekAtom = atom(null, (get, set, time: number, exact?: boolean) => {
+    const precise = exact !== false;
     const duration = get(durationAtom);
     const t = Math.max(0, duration > 0 ? Math.min(time, duration) : time);
+    set(commandedTimeAtom, t);
     const el = get(videoElementAtom);
     if (el) {
-        el.currentTime = t;
+        const keyframe = precise ? null : nearestScrubKeyframe(t);
+        // Land just after the keyframe so the decoder starts there, not at the previous GOP.
+        const videoTime = keyframe == null ? t : Math.min(duration || keyframe, keyframe + 0.001);
+        smoothSeek(el, videoTime, precise);
+    } else {
+        set(currentTimeAtom, t);
     }
-    set(currentTimeAtom, t);
 });
 
 export const seekRelativeAtom = atom(null, (get, set, delta: number) => {
-    set(seekAtom, get(currentTimeAtom) + delta);
+    set(seekAtom, get(commandedTimeAtom) + delta);
 });
 
 export const stepFrameAtom = atom(null, (get, set, direction: 1 | -1) => {
@@ -95,7 +108,9 @@ export const rotateAtom = atom(null, (get, set) => {
 /** Called by the session when a file is opened or closed. */
 export const resetPlayerAtom = atom(null, (get, set) => {
     get(videoElementAtom)?.pause();
+    resetSmoothSeek();
     set(currentTimeAtom, 0);
+    set(commandedTimeAtom, 0);
     set(playingAtom, false);
     set(mediaElementDurationAtom, 0);
     set(videoSizeAtom, { width: 0, height: 0 });

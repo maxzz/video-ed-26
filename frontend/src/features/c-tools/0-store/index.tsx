@@ -6,7 +6,7 @@ import { notice } from "@/ui/local-ui/7-toaster";
 import { isJobCanceled, runJob } from "@/features/0-jobs/0-store";
 import { currentFileAtom } from "@/features/1-media-file/0-store";
 import { type ProbeStream } from "@/features/1-media-file/9-types";
-import { currentTimeAtom, pauseAtom } from "@/features/2-player/0-store";
+import { commandedTimeAtom, pauseAtom } from "@/features/2-player/0-store";
 
 function errorText(error: unknown) {
     return error instanceof Error ? error.message : String(error);
@@ -23,7 +23,7 @@ export const captureSnapshotAtom = atom(null, async (get, set) => {
         return;
     }
     set(pauseAtom);
-    const t = get(currentTimeAtom);
+    const t = get(commandedTimeAtom);
     const name = `${pathStem(file.path)}-${formatTimeForFileName(t)}.${editorSettings.captureFormat}`;
     try {
         const saved = await api.tools.CaptureFrame(file.path, t, pathJoin(outputDir(file.dir), name));

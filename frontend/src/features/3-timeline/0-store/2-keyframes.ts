@@ -3,7 +3,7 @@ import { observe } from "jotai-effect";
 import { api } from "@/backend-api";
 import { editorSettingsAtom } from "@/store/3-editor-settings";
 import { currentFileAtom, hasVideoAtom } from "@/features/1-media-file/0-store";
-import { currentTimeAtom, durationAtom, seekAtom } from "@/features/2-player/0-store";
+import { commandedTimeAtom, durationAtom, seekAtom } from "@/features/2-player/0-store";
 import { visibleRangeAtom } from "./1-viewport";
 
 /** Keyframes are read lazily in chunks of this many seconds around what is visible. */
@@ -100,7 +100,7 @@ export function nearest(sorted: number[], t: number): number {
 
 /** Seeks to the previous or next keyframe, loading keyframes around the playhead first. */
 export const seekToKeyframeAtom = atom(null, async (get, set, direction: 1 | -1) => {
-    const t = get(currentTimeAtom);
+    const t = get(commandedTimeAtom);
     await set(ensureKeyframesAtom, t - CHUNK, t + CHUNK);
     const keyframes = get(keyframesAtom);
     const target = direction > 0

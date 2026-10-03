@@ -30,8 +30,8 @@ export function Timeline({ className }: { className?: string; }) {
     const bindScroller = useSetAtom(bindTimelineScrollerAtom);
     const seek = useSetAtom(seekAtom);
 
-    function seekFromPointer(e: ReactPointerEvent<HTMLDivElement>) {
-        seek(timeFromPointer(e, e.currentTarget, duration));
+    function seekFromPointer(e: ReactPointerEvent<HTMLDivElement>, exact: boolean) {
+        seek(timeFromPointer(e, e.currentTarget, duration), exact);
     }
 
     return (
@@ -49,9 +49,11 @@ export function Timeline({ className }: { className?: string; }) {
                         return;
                     }
                     e.currentTarget.setPointerCapture(e.pointerId);
-                    seekFromPointer(e);
+                    seekFromPointer(e, false);
                 }}
-                onPointerMove={(e) => e.currentTarget.hasPointerCapture(e.pointerId) && seekFromPointer(e)}
+                onPointerMove={(e) => e.currentTarget.hasPointerCapture(e.pointerId) && seekFromPointer(e, false)}
+                onPointerUp={(e) => e.currentTarget.hasPointerCapture(e.pointerId) && seekFromPointer(e, true)}
+                onPointerCancel={(e) => e.currentTarget.hasPointerCapture(e.pointerId) && seekFromPointer(e, true)}
             >
                 <TimelineRuler />
                 {showThumbnails && hasVideo && <ThumbnailsStrip />}

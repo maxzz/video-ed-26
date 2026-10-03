@@ -1,7 +1,7 @@
 import { atom, getDefaultStore } from "jotai";
 import { observe } from "jotai-effect";
 import { editorSettingsAtom } from "@/store/3-editor-settings";
-import { currentTimeAtom, durationAtom, playingAtom } from "@/features/2-player/0-store";
+import { commandedTimeAtom, durationAtom, playingAtom } from "@/features/2-player/0-store";
 
 export const MAX_ZOOM = 2000;
 
@@ -42,7 +42,7 @@ export const setZoomAtom = atom(null, (get, set, zoom: number, anchorX?: number)
     }
 
     const duration = get(durationAtom);
-    const anchor = anchorX ?? playheadAnchor(get(currentTimeAtom), duration, oldWidth, get(scrollLeftAtom), viewport);
+    const anchor = anchorX ?? playheadAnchor(get(commandedTimeAtom), duration, oldWidth, get(scrollLeftAtom), viewport);
     const fraction = oldWidth > 0 ? (get(scrollLeftAtom) + anchor) / oldWidth : 0;
 
     set(zoomAtom, next);
@@ -130,7 +130,7 @@ observe((get) => {
     if (!el || duration <= 0) {
         return;
     }
-    const x = (get(currentTimeAtom) / duration) * width;
+    const x = (get(commandedTimeAtom) / duration) * width;
     if (x < el.scrollLeft || x > el.scrollLeft + viewport * 0.95) {
         el.scrollLeft = x - viewport * 0.05;
     }

@@ -2,7 +2,7 @@ import { atom, type Getter } from "jotai";
 import { uuid } from "@/utils/uuid";
 import { notice } from "@/ui/local-ui/7-toaster";
 import { chaptersAtom } from "@/features/1-media-file/0-store";
-import { currentTimeAtom, durationAtom, seekAtom, togglePlayAtom, videoElementAtom } from "@/features/2-player/0-store";
+import { commandedTimeAtom, durationAtom, seekAtom, togglePlayAtom, videoElementAtom } from "@/features/2-player/0-store";
 import { snapToKeyframeAtom } from "@/features/3-timeline/0-store";
 import { type Segment, type TimeRange } from "../9-types";
 import { activeSegmentAtom, activeSegmentIdAtom, activeSegmentIndexAtom, segmentsAtom } from "./1-segments-atoms";
@@ -27,7 +27,7 @@ function segmentAtTime(get: Getter, t: number): Segment | undefined {
 }
 
 function cursorTime(get: Getter) {
-    return get(snapToKeyframeAtom)(get(currentTimeAtom));
+    return get(snapToKeyframeAtom)(get(commandedTimeAtom));
 }
 
 //---------------------------------------------------------------------------
