@@ -28,16 +28,17 @@ export const pauseAtom = atom(null, (get) => {
  * stays on `time`, and the video seeks to the nearest keyframe so the preview does not wait
  * out the GOP.
  */
-export const seekAtom = atom(null, (get, set, time: number, exact = true) => {
+export const seekAtom = atom(null, (get, set, time: number, exact?: boolean) => {
+    const precise = exact !== false;
     const duration = get(durationAtom);
     const t = Math.max(0, duration > 0 ? Math.min(time, duration) : time);
     set(commandedTimeAtom, t);
     const el = get(videoElementAtom);
     if (el) {
-        const keyframe = exact ? null : nearestScrubKeyframe(t);
+        const keyframe = precise ? null : nearestScrubKeyframe(t);
         // Land just after the keyframe so the decoder starts there, not at the previous GOP.
         const videoTime = keyframe == null ? t : Math.min(duration || keyframe, keyframe + 0.001);
-        smoothSeek(el, videoTime, exact);
+        smoothSeek(el, videoTime, precise);
     } else {
         set(currentTimeAtom, t);
     }
