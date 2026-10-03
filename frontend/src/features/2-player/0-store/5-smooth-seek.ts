@@ -1,9 +1,7 @@
 /**
- * At most one `video.currentTime` assignment is in flight.
- * Further scrubs remember only the latest target and apply it after `seeked`,
- * so a fast drag does not make the decoder render every intermediate frame.
- * Same approach as LosslessCut (`useVideo.smoothSeek`).
- * https://kitchen.vibbio.com/blog/optimizing-html5-video-scrubbing/
+ * One video seek is in flight at a time. While it decodes, later requests keep only the latest
+ * target. A drag is allowed to replace an exact seek so a long GOP decode cannot pin the preview
+ * after the pointer has already moved on.
  */
 
 const SEEK_GAP_SEC = 0.0001;
@@ -11,12 +9,14 @@ const WATCHDOG_MS = 1000;
 
 export type Seekable = { currentTime: number; };
 
+type Pending = { time: number; exact: boolean; };
+
 let seekInFlight = false;
+let inFlightExact = false;
 let awaitingSeeked = false;
 let ignoreSeeked = 0;
-let pendingSeek: number | null = null;
+let pending: Pending | null = null;
 let watchdog: ReturnType<typeof setTimeout> | undefined;
-let chain: ReturnType<typeof setTimeout> | undefined;
 
 export function isSeekInFlight() {
     return seekInFlight;
@@ -24,70 +24,73 @@ export function isSeekInFlight() {
 
 export function resetSmoothSeek() {
     seekInFlight = false;
+    inFlightExact = false;
     awaitingSeeked = false;
     ignoreSeeked = 0;
-    pendingSeek = null;
+    pending = null;
     clearTimeout(watchdog);
-    clearTimeout(chain);
     watchdog = undefined;
-    chain = undefined;
 }
 
-/** Moves the video element to `time`, skipping targets that arrive while a seek is still decoding. */
-export function smoothSeek(el: Seekable, time: number) {
+/**
+ * `exact` decodes the requested frame. Pass false for a drag so this seek can replace an exact
+ * one that is still decoding.
+ */
+export function smoothSeek(el: Seekable, time: number, exact = true) {
     if (seekInFlight) {
-        pendingSeek = time;
+        pending = { time, exact };
+        if (!exact && inFlightExact) {
+            const next = pending;
+            pending = null;
+            assignSeek(el, next.time, false);
+        }
         return;
     }
     if (Math.abs(el.currentTime - time) <= SEEK_GAP_SEC) {
         return;
     }
-    assignSeek(el, time);
+    assignSeek(el, time, exact);
 }
 
 /**
- * Call from the video element's `seeked` listener.
- * Returns the time that was just displayed, or null when this event belongs to a seek we already replaced.
+ * Call from the video `seeked` listener before starting the queued seek.
+ * Returns the time that was just displayed, or null when this event belongs to a seek we replaced.
  */
 export function onSmoothSeeked(el: Seekable): number | null {
     if (ignoreSeeked > 0) {
         ignoreSeeked--;
         return null;
     }
-
     clearTimeout(watchdog);
     const displayed = el.currentTime;
-    const next = pendingSeek;
-    pendingSeek = null;
     awaitingSeeked = false;
-
-    if (next != null && Math.abs(next - displayed) > SEEK_GAP_SEC) {
-        // Stay locked so pointer moves keep coalescing until the next seek actually starts.
-        // Yield first so the playhead can paint the frame that just landed.
-        seekInFlight = true;
-        clearTimeout(chain);
-        chain = setTimeout(() => {
-            const latest = pendingSeek ?? next;
-            pendingSeek = null;
-            if (Math.abs(el.currentTime - latest) <= SEEK_GAP_SEC) {
-                seekInFlight = false;
-                return;
-            }
-            assignSeek(el, latest);
-        }, 0);
-    } else {
+    if (pending == null) {
         seekInFlight = false;
     }
-
     return displayed;
 }
 
-function assignSeek(el: Seekable, time: number) {
+/** Starts the seek queued while the previous one was decoding. Call after publishing `onSmoothSeeked`. */
+export function continueSmoothSeek(el: Seekable) {
+    if (awaitingSeeked || pending == null) {
+        return;
+    }
+    const next = pending;
+    pending = null;
+    if (Math.abs(el.currentTime - next.time) <= SEEK_GAP_SEC) {
+        seekInFlight = false;
+        return;
+    }
+    assignSeek(el, next.time, next.exact);
+}
+
+function assignSeek(el: Seekable, time: number, exact: boolean) {
     if (awaitingSeeked) {
         ignoreSeeked++;
     }
     awaitingSeeked = true;
     seekInFlight = true;
+    inFlightExact = exact;
     armWatchdog(el);
     el.currentTime = time;
 }
@@ -98,14 +101,14 @@ function armWatchdog(el: Seekable) {
         if (!seekInFlight) {
             return;
         }
-        if (pendingSeek != null) {
-            const next = pendingSeek;
-            pendingSeek = null;
-            assignSeek(el, next);
+        if (pending != null) {
+            const next = pending;
+            pending = null;
+            assignSeek(el, next.time, next.exact);
             return;
         }
-        // The single frame is still decoding. Accept its seeked when it arrives,
-        // but let a newer scrub start instead of waiting on it.
+        // Still decoding the only requested frame. Accept its seeked when it arrives,
+        // but let a newer request start instead of waiting on it.
         seekInFlight = false;
     }, WATCHDOG_MS);
 }

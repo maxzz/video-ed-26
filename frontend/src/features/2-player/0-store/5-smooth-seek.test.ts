@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { isSeekInFlight, onSmoothSeeked, resetSmoothSeek, smoothSeek, type Seekable } from "./5-smooth-seek";
+import { continueSmoothSeek, isSeekInFlight, onSmoothSeeked, resetSmoothSeek, smoothSeek, type Seekable } from "./5-smooth-seek";
 
 class FakeVideo implements Seekable {
     assignments: number[] = [];
@@ -19,6 +19,12 @@ class FakeVideo implements Seekable {
     }
 }
 
+function landed(el: Seekable) {
+    const displayed = onSmoothSeeked(el);
+    continueSmoothSeek(el);
+    return displayed;
+}
+
 describe("smoothSeek", () => {
     beforeEach(() => {
         vi.useFakeTimers();
@@ -30,7 +36,7 @@ describe("smoothSeek", () => {
         vi.useRealTimers();
     });
 
-    it("assigns the first target immediately and keeps only the latest while that seek is decoding", () => {
+    it("assigns the first exact target immediately and keeps only the latest while that seek is decoding", () => {
         const el = new FakeVideo();
 
         smoothSeek(el, 1);
@@ -40,37 +46,10 @@ describe("smoothSeek", () => {
         expect(el.assignments).toEqual([1]);
         expect(isSeekInFlight()).toBe(true);
 
-        expect(onSmoothSeeked(el)).toBe(1);
-        vi.advanceTimersByTime(0);
-
+        expect(landed(el)).toBe(1);
         expect(el.assignments).toEqual([1, 9]);
-        expect(onSmoothSeeked(el)).toBe(9);
+        expect(landed(el)).toBe(9);
         expect(el.assignments).toEqual([1, 9]);
-        expect(isSeekInFlight()).toBe(false);
-    });
-
-    it("uses a newer target that arrives in the gap before the queued seek starts", () => {
-        const el = new FakeVideo();
-
-        smoothSeek(el, 1);
-        smoothSeek(el, 3);
-        onSmoothSeeked(el);
-        smoothSeek(el, 8);
-        vi.advanceTimersByTime(0);
-
-        expect(el.assignments).toEqual([1, 8]);
-    });
-
-    it("does not seek again when the pointer returns to the frame already displayed", () => {
-        const el = new FakeVideo();
-
-        smoothSeek(el, 1);
-        smoothSeek(el, 5);
-        onSmoothSeeked(el);
-        smoothSeek(el, 1);
-        vi.advanceTimersByTime(0);
-
-        expect(el.assignments).toEqual([1]);
         expect(isSeekInFlight()).toBe(false);
     });
 
@@ -83,6 +62,17 @@ describe("smoothSeek", () => {
         expect(isSeekInFlight()).toBe(false);
     });
 
+    it("does not seek again when the queued target is the frame that just displayed", () => {
+        const el = new FakeVideo();
+
+        smoothSeek(el, 1);
+        smoothSeek(el, 1);
+        expect(landed(el)).toBe(1);
+
+        expect(el.assignments).toEqual([1]);
+        expect(isSeekInFlight()).toBe(false);
+    });
+
     it("still publishes a slow seek that finishes after the watchdog unlocks", () => {
         const el = new FakeVideo();
 
@@ -91,7 +81,7 @@ describe("smoothSeek", () => {
 
         expect(el.assignments).toEqual([10]);
         expect(isSeekInFlight()).toBe(false);
-        expect(onSmoothSeeked(el)).toBe(10);
+        expect(landed(el)).toBe(10);
     });
 
     it("replaces a seek that outlives the watchdog and ignores the stale seeked event", () => {
@@ -103,7 +93,30 @@ describe("smoothSeek", () => {
 
         expect(el.assignments).toEqual([10, 40]);
         expect(onSmoothSeeked(el)).toBeNull();
-        expect(onSmoothSeeked(el)).toBe(40);
+        expect(landed(el)).toBe(40);
         expect(isSeekInFlight()).toBe(false);
+    });
+
+    it("lets a drag replace an exact seek that is still decoding", () => {
+        const el = new FakeVideo();
+
+        smoothSeek(el, 1);
+        smoothSeek(el, 6, false);
+
+        expect(el.assignments).toEqual([1, 6]);
+        expect(onSmoothSeeked(el)).toBeNull();
+        expect(landed(el)).toBe(6);
+        expect(isSeekInFlight()).toBe(false);
+    });
+
+    it("finishes a drag on the exact frame after the keyframe seek lands", () => {
+        const el = new FakeVideo();
+
+        smoothSeek(el, 6, false);
+        smoothSeek(el, 6.4, true);
+
+        expect(el.assignments).toEqual([6]);
+        expect(landed(el)).toBe(6);
+        expect(el.assignments).toEqual([6, 6.4]);
     });
 });

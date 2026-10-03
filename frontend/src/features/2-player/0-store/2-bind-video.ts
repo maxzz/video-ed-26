@@ -4,7 +4,7 @@ import {
     commandedTimeAtom, currentTimeAtom, mediaElementDurationAtom, mutedAtom, playbackErrorAtom, PlaybackError,
     playbackRateAtom, playingAtom, videoElementAtom, videoSizeAtom, volumeAtom,
 } from "./1-player-atoms";
-import { isSeekInFlight, onSmoothSeeked, resetSmoothSeek, smoothSeek } from "./5-smooth-seek";
+import { continueSmoothSeek, isSeekInFlight, onSmoothSeeked, resetSmoothSeek, smoothSeek } from "./5-smooth-seek";
 
 /**
  * Use as the ref callback of the <video> element: `ref={useSetAtom(bindVideoElementAtom)}`.
@@ -55,9 +55,11 @@ export const bindVideoElementAtom = atom(null, (get, set, el: HTMLVideoElement |
     el.addEventListener("ended", () => set(playingAtom, false), { signal });
     el.addEventListener("seeked", () => {
         const displayed = onSmoothSeeked(el);
-        if (displayed != null) {
-            set(currentTimeAtom, displayed);
+        if (displayed == null) {
+            return;
         }
+        set(currentTimeAtom, displayed);
+        continueSmoothSeek(el);
     }, { signal });
     el.addEventListener("timeupdate", () => {
         if (el.paused && !isSeekInFlight()) {
